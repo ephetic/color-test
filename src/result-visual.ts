@@ -92,7 +92,7 @@ function appendBracketRow(
     hiLabel.className = "ci-bound-label";
     hiLabel.textContent = `${boundsHi.toFixed(1)}°`;
 
-    cluster.append(loLabel, open, hiLabel, close);
+    cluster.append(loLabel, open, close, hiLabel);
     bracket.append(cluster);
     return;
   }
