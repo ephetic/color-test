@@ -108,12 +108,27 @@ function pairLabel(pair: QuizPair): string {
 function renderHome() {
   app!.className = "screen home";
 
+  const gearWrap = document.createElement("div");
+  gearWrap.className = "home-gear-wrap";
+
   const calBtn = document.createElement("button");
   calBtn.type = "button";
   calBtn.className = "result-icon-btn home-gear";
   calBtn.dataset.action = "calibration";
   calBtn.setAttribute("aria-label", "Settings");
   calBtn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 1.72l-.12.84a8 8 0 0 0-1.63.94l-.81-.31a2 2 0 0 0-2.42.9l-.22.38a2 2 0 0 0 .51 2.47l.63.58a8.05 8.05 0 0 0 0 2.66l-.63.58a2 2 0 0 0-.51 2.47l.22.38a2 2 0 0 0 2.42.9l.81-.31c.51.38 1.05.7 1.63.94l.12.84a2 2 0 0 0 2 1.72h.44a2 2 0 0 0 2-1.72l.12-.84a8 8 0 0 0 1.63-.94l.81.31a2 2 0 0 0 2.42-.9l.22-.38a2 2 0 0 0-.51-2.47l-.63-.58a8.05 8.05 0 0 0 0-2.66l.63-.58a2 2 0 0 0 .51-2.47l-.22-.38a2 2 0 0 0-2.42-.9l-.81.31a8 8 0 0 0-1.63-.94l-.12-.84A2 2 0 0 0 12.22 2z"/><circle cx="12" cy="12" r="3"/></svg>`;
+
+  if (!hasCalibrated()) {
+    const nudge = document.createElement("p");
+    nudge.className = "home-cal-nudge";
+    nudge.setAttribute("role", "status");
+    nudge.id = "home-cal-nudge";
+    nudge.textContent = "Calibrate display for reliable hues";
+    calBtn.setAttribute("aria-describedby", "home-cal-nudge");
+    gearWrap.append(nudge, calBtn);
+  } else {
+    gearWrap.append(calBtn);
+  }
 
   const panel = document.createElement("div");
   panel.className = "home-panel";
@@ -162,7 +177,7 @@ function renderHome() {
   }
 
   panel.append(hint, actions);
-  app!.append(calBtn, panel);
+  app!.append(gearWrap, panel);
 
   calBtn.addEventListener("click", () => openCalibrationMenu());
 
