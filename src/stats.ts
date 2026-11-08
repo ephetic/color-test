@@ -73,6 +73,55 @@ export function aggregateCi95(hues: number[], pair: QuizPair): AggregateCI | nul
   };
 }
 
+export type DisplayBand = {
+  lo: number;
+  hi: number;
+  label: "" | "IQR" | "95% CI";
+};
+
+function sortHuesForStats(hues: number[], pair: QuizPair): number[] {
+  if (pair === "red-orange") {
+    return [...hues]
+      .map((h) => (h < 180 ? h + 360 : h))
+      .sort((a, b) => a - b)
+      .map((h) => (h >= 360 ? h - 360 : h));
+  }
+  return [...hues].sort((a, b) => a - b);
+}
+
+function percentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return NaN;
+  if (sorted.length === 1) return sorted[0]!;
+  const idx = (sorted.length - 1) * p;
+  const lo = Math.floor(idx);
+  const hi = Math.ceil(idx);
+  if (lo === hi) return sorted[lo]!;
+  return sorted[lo]! + (sorted[hi]! - sorted[lo]!) * (idx - lo);
+}
+
+/** Parens on the bar: session bracket (n=1), IQR (n 2–3), 95% CI on mean (n≥4). */
+export function displayBand(
+  hues: number[],
+  pair: QuizPair,
+  sessionLo: number,
+  sessionHi: number,
+): DisplayBand {
+  const n = hues.length;
+  if (n <= 1) {
+    return { lo: sessionLo, hi: sessionHi, label: "" };
+  }
+  if (n < 4) {
+    const sorted = sortHuesForStats(hues, pair);
+    return {
+      lo: percentile(sorted, 0.25),
+      hi: percentile(sorted, 0.75),
+      label: "IQR",
+    };
+  }
+  const agg = aggregateCi95(hues, pair)!;
+  return { lo: agg.low, hi: agg.high, label: "95% CI" };
+}
+
 export function formatBounds(lo: number, hi: number, pair: QuizPair): string {
   if (pair === "red-orange" && lo > hi) {
     return `${lo.toFixed(1)}° – ${hi.toFixed(1)}° (wrap)`;

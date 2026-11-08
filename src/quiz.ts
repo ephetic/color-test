@@ -9,19 +9,33 @@ export type BisectionState = {
 
 const RANGES: Record<QuizPair, { lo: number; hi: number; leftLabel: string; rightLabel: string }> =
   {
+    /** HSV S=V=1: 120° #00FF00 green → 240° #0000FF blue */
     "blue-green": {
       lo: 120,
       hi: 240,
       leftLabel: "This is blue",
       rightLabel: "This is green",
     },
+    /** HSV S=V=1: 0° #FF0000 red → 12.5° orange (narrower arc, less yellow) */
     "red-orange": {
-      lo: 350,
-      hi: 50,
+      lo: 0,
+      hi: 12.5,
       leftLabel: "This is red",
       rightLabel: "This is orange",
     },
   };
+
+export function pairHueRange(pair: QuizPair): { lo: number; hi: number } {
+  const r = RANGES[pair];
+  return { lo: r.lo, hi: r.hi };
+}
+
+/** Span in degrees along the hue arc (red–orange wraps past 360°). */
+export function pairHueSpan(pair: QuizPair): number {
+  const { lo, hi } = pairHueRange(pair);
+  if (pair === "red-orange" && lo > hi) return 360 - lo + hi;
+  return hi - lo;
+}
 
 export function startBisection(pair: QuizPair): BisectionState {
   const r = RANGES[pair];
@@ -52,22 +66,24 @@ export function labelsFor(pair: QuizPair): { left: string; right: string } {
   return { left: r.leftLabel, right: r.rightLabel };
 }
 
-/** User tapped the left button (more blue / more red). */
+/** User tapped the left button (this is blue / this is red). */
 export function chooseLeft(state: BisectionState): BisectionState {
   const mid = currentHue(state);
+  const narrowHi = state.pair === "blue-green";
   return {
     ...state,
-    hi: mid,
+    ...(narrowHi ? { hi: mid } : { lo: mid }),
     step: state.step + 1,
   };
 }
 
-/** User tapped the right button (more green / more orange). */
+/** User tapped the right button (this is green / this is orange). */
 export function chooseRight(state: BisectionState): BisectionState {
   const mid = currentHue(state);
+  const narrowHi = state.pair === "blue-green";
   return {
     ...state,
-    lo: mid,
+    ...(narrowHi ? { lo: mid } : { hi: mid }),
     step: state.step + 1,
   };
 }

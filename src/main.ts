@@ -26,7 +26,7 @@ import {
   type QuizResult,
 } from "./quiz";
 import { buildPairCiBar } from "./result-visual";
-import { aggregateCi95, formatBounds } from "./stats";
+import { aggregateCi95, displayBand, formatBounds } from "./stats";
 
 type Screen =
   | "home"
@@ -111,7 +111,7 @@ function renderHome() {
   calBtn.type = "button";
   calBtn.className = "result-icon-btn home-gear";
   calBtn.dataset.action = "calibration";
-  calBtn.setAttribute("aria-label", "Calibration");
+  calBtn.setAttribute("aria-label", "Settings");
   calBtn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 1.72l-.12.84a8 8 0 0 0-1.63.94l-.81-.31a2 2 0 0 0-2.42.9l-.22.38a2 2 0 0 0 .51 2.47l.63.58a8.05 8.05 0 0 0 0 2.66l-.63.58a2 2 0 0 0-.51 2.47l.22.38a2 2 0 0 0 2.42.9l.81-.31c.51.38 1.05.7 1.63.94l.12.84a2 2 0 0 0 2 1.72h.44a2 2 0 0 0 2-1.72l.12-.84a8 8 0 0 0 1.63-.94l.81.31a2 2 0 0 0 2.42-.9l.22-.38a2 2 0 0 0-.51-2.47l-.63-.58a8.05 8.05 0 0 0 0-2.66l.63-.58a2 2 0 0 0 .51-2.47l-.22-.38a2 2 0 0 0-2.42-.9l-.81.31a8 8 0 0 0-1.63-.94l-.12-.84A2 2 0 0 0 12.22 2z"/><circle cx="12" cy="12" r="3"/></svg>`;
 
   const panel = document.createElement("div");
@@ -139,11 +139,16 @@ function renderHome() {
       fixedLayout: true,
       muted: true,
       ...(latest != null
-        ? {
-            boundsLo: latest.boundsLo,
-            boundsHi: latest.boundsHi,
-            pastHues: results.map((r) => r.hueDegrees),
-          }
+        ? (() => {
+            const hues = results.map((r) => r.hueDegrees);
+            const band = displayBand(hues, pair, latest.boundsLo, latest.boundsHi);
+            return {
+              boundsLo: band.lo,
+              boundsHi: band.hi,
+              pastHues: hues,
+              latestHue: latest.hueDegrees,
+            };
+          })()
         : {}),
     };
 
@@ -167,18 +172,22 @@ function renderHome() {
 
 function renderCalibrationMenu() {
   app!.className = "screen home";
+  const results = loadResults();
   const calNote = hasCalibrated()
     ? `Saved: brightness ${cal.brightness.toFixed(2)}, contrast ${cal.contrast.toFixed(2)}, gamma ${cal.gamma.toFixed(2)}`
     : "No values saved yet for this browser.";
 
   app!.innerHTML = `
     <div class="home-panel">
-      <h1>Calibration</h1>
+      <h1>Settings</h1>
       <p class="meta">${calNote}</p>
       <div class="home-actions column">
         <button type="button" class="btn primary" data-action="cal-brightness">Brightness</button>
         <button type="button" class="btn primary" data-action="cal-contrast">Contrast</button>
         <button type="button" class="btn primary" data-action="cal-gamma">Gamma</button>
+        <button type="button" class="btn danger" data-action="clear-results"${
+          results.length ? "" : " disabled"
+        }>Clear results</button>
         <button type="button" class="btn" data-action="back">Back</button>
       </div>
     </div>
@@ -196,6 +205,13 @@ function renderCalibrationMenu() {
   app!.querySelector("[data-action=back]")?.addEventListener("click", () => {
     screen = "home";
     render();
+  });
+  app!.querySelector("[data-action=clear-results]")?.addEventListener("click", () => {
+    if (confirm("Delete all saved quiz scores? Calibration will stay.")) {
+      clearResults();
+      lastSaved = null;
+      render();
+    }
   });
 }
 
@@ -280,21 +296,16 @@ function renderResult() {
   pairTitle.className = "result-pair-title";
   pairTitle.textContent = pairLabel(r.pair);
 
-  const heading = document.createElement("h2");
-  heading.textContent = "Your threshold";
-
   const readout = document.createElement("p");
   readout.className = "hue-readout";
   readout.textContent = `${r.hueDegrees.toFixed(1)}°`;
 
-  const meta = document.createElement("p");
-  meta.className = "wizard-copy result-meta";
-  meta.textContent = `${r.steps} choices`;
-
+  const band = displayBand(pastHues, r.pair, r.boundsLo, r.boundsHi);
   const ciBar = buildPairCiBar(r.pair, cal, {
-    boundsLo: r.boundsLo,
-    boundsHi: r.boundsHi,
+    boundsLo: band.lo,
+    boundsHi: band.hi,
     pastHues,
+    latestHue: r.hueDegrees,
   });
 
   const againBtn = document.createElement("button");
@@ -304,7 +315,7 @@ function renderResult() {
   againBtn.setAttribute("aria-label", `Run ${pairLabel(r.pair)} again`);
   againBtn.innerHTML = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>`;
 
-  overlay.append(homeBtn, pairTitle, heading, readout, meta, ciBar, againBtn);
+  overlay.append(homeBtn, pairTitle, readout, ciBar, againBtn);
 
   homeBtn.addEventListener("click", () => {
     quiz = null;

@@ -1,49 +1,59 @@
 import { calibratedCssColor } from "./color";
 import type { Calibration } from "./calibration";
-import type { QuizPair } from "./quiz";
+import { pairHueRange, pairHueSpan, type QuizPair } from "./quiz";
 
-const RANGE: Record<QuizPair, { lo: number; hi: number }> = {
-  "blue-green": { lo: 120, hi: 240 },
-  "red-orange": { lo: 350, hi: 50 },
-};
-
-function hueOnBarAxis(hue: number, pair: QuizPair): number {
-  if (pair === "blue-green") {
-    const { lo, hi } = RANGE[pair];
-    return Math.min(hi, Math.max(lo, hue));
-  }
+/** Unwrap hue onto the quiz arc so 0–100% matches red→orange (not into yellow). */
+function hueAlongPairArc(hue: number, pair: QuizPair): number {
+  const { lo, hi } = pairHueRange(pair);
+  const span = pairHueSpan(pair);
   let h = hue;
-  if (h < 180) h += 360;
-  return h;
+  if (pair === "red-orange" && lo > hi && h < lo) h += 360;
+  const t = h - lo;
+  return (Math.min(span, Math.max(0, t)) / span) * 100;
 }
 
 /** Position along the bar in percent (0–100). */
 export function hueToBarPercent(hue: number, pair: QuizPair): number {
-  if (pair === "blue-green") {
-    const { lo, hi } = RANGE[pair];
-    return ((hue - lo) / (hi - lo)) * 100;
-  }
-  const axis = hueOnBarAxis(hue, pair);
-  const span = 60;
-  return ((axis - 350) / span) * 100;
+  const { lo, hi } = pairHueRange(pair);
+  const span = pairHueSpan(pair);
+  if (pair === "red-orange" && lo > hi) return hueAlongPairArc(hue, pair);
+  const t = hue - lo;
+  return (Math.min(span, Math.max(0, t)) / span) * 100;
+}
+
+function pairGradientEndHues(pair: QuizPair): { lo: number; hi: number } {
+  const { lo } = pairHueRange(pair);
+  const span = pairHueSpan(pair);
+  let hi = lo + span;
+  if (hi >= 360) hi -= 360;
+  return { lo, hi };
+}
+
+export function pairGradientEndColors(
+  pair: QuizPair,
+  cal: Calibration,
+): { start: string; end: string } {
+  const { lo, hi } = pairGradientEndHues(pair);
+  return {
+    start: calibratedCssColor(lo, 1, 1, cal),
+    end: calibratedCssColor(hi, 1, 1, cal),
+  };
 }
 
 export function pairGradientCss(pair: QuizPair, cal: Calibration): string {
   const steps = 32;
-  const stops: string[] = [];
-  for (let i = 0; i <= steps; i++) {
-    let h: number;
-    if (pair === "blue-green") {
-      const { lo, hi } = RANGE[pair];
-      h = lo + ((hi - lo) * i) / steps;
-    } else {
-      const t = (60 * i) / steps;
-      h = 350 + t;
-      if (h >= 360) h -= 360;
-    }
+  const { lo, hi } = pairGradientEndHues(pair);
+  const span = pairHueSpan(pair);
+  const start = calibratedCssColor(lo, 1, 1, cal);
+  const end = calibratedCssColor(hi, 1, 1, cal);
+  const stops: string[] = [`${start} 0%`, `${start} 1%`];
+  for (let i = 1; i < steps; i++) {
+    let h = lo + (span * i) / steps;
+    if (h >= 360) h -= 360;
     const pct = (100 * i) / steps;
     stops.push(`${calibratedCssColor(h, 1, 1, cal)} ${pct.toFixed(1)}%`);
   }
+  stops.push(`${end} 99%`, `${end} 100%`);
   return `linear-gradient(to right, ${stops.join(", ")})`;
 }
 
@@ -51,10 +61,19 @@ export type PairCiBarOptions = {
   boundsLo?: number;
   boundsHi?: number;
   pastHues?: number[];
+  /** Mark the latest run (e.g. on the result screen) with an upward triangle. */
+  latestHue?: number;
   muted?: boolean;
   /** Reserve bracket and dot rows even when empty (home cards). */
   fixedLayout?: boolean;
 };
+
+function boundParen(ch: "(" | ")"): HTMLSpanElement {
+  const el = document.createElement("span");
+  el.className = "ci-bracket-paren";
+  el.textContent = ch;
+  return el;
+}
 
 function appendBracketRow(
   bracket: HTMLElement,
@@ -64,38 +83,11 @@ function appendBracketRow(
 ) {
   bracket.setAttribute(
     "aria-label",
-    `Session band ${boundsLo.toFixed(1)}° to ${boundsHi.toFixed(1)}°`,
+    `${boundsLo.toFixed(1)}° to ${boundsHi.toFixed(1)}°`,
   );
 
   const loPct = hueToBarPercent(boundsLo, pair);
   const hiPct = hueToBarPercent(boundsHi, pair);
-  const spanPct = Math.abs(hiPct - loPct);
-
-  if (spanPct < 14) {
-    const cluster = document.createElement("span");
-    cluster.className = "ci-mark-cluster";
-    cluster.style.left = `${(loPct + hiPct) / 2}%`;
-
-    const loLabel = document.createElement("span");
-    loLabel.className = "ci-bound-label";
-    loLabel.textContent = `${boundsLo.toFixed(1)}°`;
-
-    const open = document.createElement("span");
-    open.className = "ci-bracket-paren inline";
-    open.textContent = "(";
-
-    const close = document.createElement("span");
-    close.className = "ci-bracket-paren inline";
-    close.textContent = ")";
-
-    const hiLabel = document.createElement("span");
-    hiLabel.className = "ci-bound-label";
-    hiLabel.textContent = `${boundsHi.toFixed(1)}°`;
-
-    cluster.append(loLabel, open, close, hiLabel);
-    bracket.append(cluster);
-    return;
-  }
 
   const loMark = document.createElement("span");
   loMark.className = "ci-mark lo";
@@ -105,25 +97,18 @@ function appendBracketRow(
   loLabel.className = "ci-bound-label";
   loLabel.textContent = `${boundsLo.toFixed(1)}°`;
 
-  const open = document.createElement("span");
-  open.className = "ci-bracket-paren inline";
-  open.textContent = "(";
-
-  loMark.append(loLabel, open);
+  loMark.append(loLabel, boundParen("("));
 
   const hiMark = document.createElement("span");
   hiMark.className = "ci-mark hi";
   hiMark.style.left = `${hiPct}%`;
 
-  const close = document.createElement("span");
-  close.className = "ci-bracket-paren inline";
-  close.textContent = ")";
-
   const hiLabel = document.createElement("span");
   hiLabel.className = "ci-bound-label";
   hiLabel.textContent = `${boundsHi.toFixed(1)}°`;
 
-  hiMark.append(close, hiLabel);
+  hiMark.append(boundParen(")"), hiLabel);
+
   bracket.append(loMark, hiMark);
 }
 
@@ -138,9 +123,24 @@ export function buildPairCiBar(
   if (options.fixedLayout) classes.push("layout-fixed");
   wrap.className = classes.join(" ");
 
+  const stack = document.createElement("div");
+  stack.className = "ci-bar-stack";
+
+  const bar = document.createElement("div");
+  bar.className = "ci-gradient-bar";
+  const { start, end } = pairGradientEndColors(pair, cal);
+  bar.style.setProperty("--grad-start", start);
+  bar.style.setProperty("--grad-end", end);
+  bar.style.background = pairGradientCss(pair, cal);
+  stack.append(bar);
+
+  const overlay = document.createElement("div");
+  overlay.className = "ci-bar-overlay";
+
   const pastHues = options.pastHues ?? [];
   const hasSession = options.boundsLo != null && options.boundsHi != null;
   const showBracket = hasSession || options.fixedLayout;
+  const showDots = pastHues.length > 0 || options.fixedLayout;
 
   if (showBracket) {
     const bracket = document.createElement("div");
@@ -148,27 +148,35 @@ export function buildPairCiBar(
     if (hasSession) {
       appendBracketRow(bracket, pair, options.boundsLo!, options.boundsHi!);
     }
-    wrap.append(bracket);
+    overlay.append(bracket);
   }
 
-  const bar = document.createElement("div");
-  bar.className = "ci-gradient-bar";
-  bar.style.background = pairGradientCss(pair, cal);
-  wrap.append(bar);
-
-  const showDots = pastHues.length > 0 || options.fixedLayout;
   if (showDots) {
     const dots = document.createElement("div");
     dots.className = "ci-dots";
-    for (const h of pastHues) {
+    const latestHue = options.latestHue;
+    pastHues.forEach((h, i) => {
+      if (latestHue != null && i === pastHues.length - 1) return;
       const dot = document.createElement("span");
       dot.className = "ci-dot";
       dot.style.left = `${hueToBarPercent(h, pair)}%`;
       dot.title = `${h.toFixed(1)}°`;
       dots.append(dot);
+    });
+    if (latestHue != null) {
+      const tri = document.createElement("span");
+      tri.className = "ci-dot-latest";
+      tri.style.left = `${hueToBarPercent(latestHue, pair)}%`;
+      tri.title = `${latestHue.toFixed(1)}° (latest)`;
+      dots.append(tri);
     }
-    wrap.append(dots);
+    overlay.append(dots);
   }
+
+  if (overlay.childElementCount > 0) {
+    stack.append(overlay);
+  }
+  wrap.append(stack);
 
   return wrap;
 }
