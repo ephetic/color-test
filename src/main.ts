@@ -114,11 +114,47 @@ function pairLabel(pair: QuizPair): string {
   return pair === "blue-green" ? "Blue / green" : "Red / orange";
 }
 
+function buildShareText(): string {
+  const lines: string[] = [];
+  const pairs: QuizPair[] = ["blue-green", "red-orange"];
+  for (const pair of pairs) {
+    const hues = resultsForPair(pair).map((r) => r.hueDegrees);
+    if (hues.length > 0) {
+      const band = displayBand(hues, pair);
+      lines.push(
+        `${pairLabel(pair)} IQR: ${band.lo.toFixed(1)}° – ${band.hi.toFixed(1)}°`,
+      );
+    } else {
+      lines.push(`${pairLabel(pair)} IQR: —`);
+    }
+  }
+  lines.push(
+    `Calibration: brightness ${cal.brightness.toFixed(2)}, contrast ${cal.contrast.toFixed(2)}, gamma ${cal.gamma.toFixed(2)}`,
+  );
+  return lines.join("\n");
+}
+
+async function copyShareText(): Promise<void> {
+  const text = buildShareText();
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    window.prompt("Copy:", text);
+  }
+}
+
 function renderHome() {
   app!.className = "screen home";
 
   const gearWrap = document.createElement("div");
   gearWrap.className = "home-gear-wrap";
+
+  const shareBtn = document.createElement("button");
+  shareBtn.type = "button";
+  shareBtn.className = "home-icon-btn home-share";
+  shareBtn.dataset.action = "share";
+  shareBtn.setAttribute("aria-label", "Copy IQR and calibration");
+  shareBtn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`;
 
   const calBtn = document.createElement("button");
   calBtn.type = "button";
@@ -134,9 +170,9 @@ function renderHome() {
     nudge.id = "home-cal-nudge";
     nudge.textContent = "Calibrate display for reliable hues";
     calBtn.setAttribute("aria-describedby", "home-cal-nudge");
-    gearWrap.append(nudge, calBtn);
+    gearWrap.append(nudge, shareBtn, calBtn);
   } else {
-    gearWrap.append(calBtn);
+    gearWrap.append(shareBtn, calBtn);
   }
 
   const panel = document.createElement("div");
@@ -190,6 +226,9 @@ function renderHome() {
 
   app!.append(gearWrap, panel, startToast);
 
+  shareBtn.addEventListener("click", () => {
+    void copyShareText();
+  });
   calBtn.addEventListener("click", () => openCalibrationMenu());
 
   const hintTimer = window.setTimeout(() => {
