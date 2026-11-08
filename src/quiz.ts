@@ -16,10 +16,10 @@ const RANGES: Record<QuizPair, { lo: number; hi: number; leftLabel: string; righ
       leftLabel: "This is blue",
       rightLabel: "This is green",
     },
-    /** HSV S=V=1: 359° crimson red → 11° orange (wraps past 0°; less yellow at top) */
+    /** HSV S=V=1: 359° crimson red → 13° orange (wraps past 0°) */
     "red-orange": {
       lo: 359,
-      hi: 11,
+      hi: 13,
       leftLabel: "This is red",
       rightLabel: "This is orange",
     },
@@ -42,7 +42,7 @@ export function startBisection(pair: QuizPair): BisectionState {
   return { pair, lo: r.lo, hi: r.hi, step: 0 };
 }
 
-/** Map a hue on the red–orange arc into degrees along the 359°→11° span. */
+/** Map a hue on the red–orange arc into degrees along the 359°→13° span. */
 function redOrangeAlongArc(hue: number): number {
   const { lo, hi } = pairHueRange("red-orange");
   let h = hue;
