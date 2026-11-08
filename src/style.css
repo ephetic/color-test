@@ -466,10 +466,28 @@ h2 {
   text-align: right;
 }
 
-.home-gear {
+.home-icon-btn {
+  display: flex;
   flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
   width: 2.75rem;
   height: 2.75rem;
+  margin: 0;
+  padding: 0.25rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #bdbdbd;
+  cursor: pointer;
+}
+
+.home-icon-btn:hover {
+  color: #eee;
+}
+
+.home-icon-btn:active {
+  transform: scale(0.96);
 }
 
 .home-pair-card {
@@ -568,17 +586,13 @@ h2 {
   bottom: max(1.1rem, env(safe-area-inset-bottom, 0px));
   z-index: 25;
   margin: 0;
-  padding: 0.55rem 1rem;
+  padding: 0;
   max-width: min(22rem, calc(100vw - 2rem));
-  border-radius: 10px;
   font-size: 0.88rem;
   font-weight: 500;
   line-height: 1.35;
   text-align: center;
-  color: #c8d4f0;
-  background: rgba(18, 22, 32, 0.92);
-  border: 1px solid rgba(110, 150, 230, 0.4);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  color: #8a96ad;
   transform: translateX(-50%) translateY(0.5rem);
   opacity: 0;
   pointer-events: none;
