@@ -141,7 +141,7 @@ function renderHome() {
       ...(latest != null
         ? (() => {
             const hues = results.map((r) => r.hueDegrees);
-            const band = displayBand(hues, pair, latest.boundsLo, latest.boundsHi);
+            const band = displayBand(hues, pair);
             return {
               boundsLo: band.lo,
               boundsHi: band.hi,
@@ -300,7 +300,7 @@ function renderResult() {
   readout.className = "hue-readout";
   readout.textContent = `${r.hueDegrees.toFixed(1)}°`;
 
-  const band = displayBand(pastHues, r.pair, r.boundsLo, r.boundsHi);
+  const band = displayBand(pastHues, r.pair);
   const ciBar = buildPairCiBar(r.pair, cal, {
     boundsLo: band.lo,
     boundsHi: band.hi,

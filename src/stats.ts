@@ -73,12 +73,6 @@ export function aggregateCi95(hues: number[], pair: QuizPair): AggregateCI | nul
   };
 }
 
-export type DisplayBand = {
-  lo: number;
-  hi: number;
-  label: "" | "IQR" | "95% CI";
-};
-
 function sortHuesForStats(hues: number[], pair: QuizPair): number[] {
   if (pair === "red-orange") {
     return [...hues]
@@ -89,37 +83,28 @@ function sortHuesForStats(hues: number[], pair: QuizPair): number[] {
   return [...hues].sort((a, b) => a - b);
 }
 
-function percentile(sorted: number[], p: number): number {
-  if (sorted.length === 0) return NaN;
-  if (sorted.length === 1) return sorted[0]!;
-  const idx = (sorted.length - 1) * p;
-  const lo = Math.floor(idx);
-  const hi = Math.ceil(idx);
-  if (lo === hi) return sorted[lo]!;
-  return sorted[lo]! + (sorted[hi]! - sorted[lo]!) * (idx - lo);
+/** Q1/Q3 as actual order statistics (rounded rank), so e.g. n=4 uses the 2nd & 3rd runs. */
+function quartileRank(sorted: number[], p: 0.25 | 0.75): number {
+  const n = sorted.length;
+  if (n === 0) return NaN;
+  if (n === 1) return sorted[0]!;
+  const idx = Math.round((n - 1) * p);
+  return sorted[Math.min(n - 1, Math.max(0, idx))]!;
 }
 
-/** Parens on the bar: session bracket (n=1), IQR (n 2–3), 95% CI on mean (n≥4). */
+/** Parens on the bar: IQR (Q1–Q3) of saved threshold hues, all run counts. */
 export function displayBand(
   hues: number[],
   pair: QuizPair,
-  sessionLo: number,
-  sessionHi: number,
-): DisplayBand {
-  const n = hues.length;
-  if (n <= 1) {
-    return { lo: sessionLo, hi: sessionHi, label: "" };
+): { lo: number; hi: number } {
+  const sorted = sortHuesForStats(hues, pair);
+  if (sorted.length === 0) {
+    return { lo: NaN, hi: NaN };
   }
-  if (n < 4) {
-    const sorted = sortHuesForStats(hues, pair);
-    return {
-      lo: percentile(sorted, 0.25),
-      hi: percentile(sorted, 0.75),
-      label: "IQR",
-    };
-  }
-  const agg = aggregateCi95(hues, pair)!;
-  return { lo: agg.low, hi: agg.high, label: "95% CI" };
+  return {
+    lo: quartileRank(sorted, 0.25),
+    hi: quartileRank(sorted, 0.75),
+  };
 }
 
 export function formatBounds(lo: number, hi: number, pair: QuizPair): string {
