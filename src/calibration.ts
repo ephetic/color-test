@@ -40,6 +40,11 @@ export function hasCalibrated(): boolean {
   return localStorage.getItem(CALIBRATED_FLAG_KEY) === "1";
 }
 
+export function clearCalibration(): void {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(CALIBRATED_FLAG_KEY);
+}
+
 function clamp(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n));
 }

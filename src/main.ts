@@ -1,4 +1,6 @@
 import {
+  clearCalibration,
+  DEFAULT_CALIBRATION,
   hasCalibrated,
   loadCalibration,
   type Calibration,
@@ -46,6 +48,13 @@ let quiz: BisectionState | null = null;
 let lastSaved: QuizResult | null = null;
 let teardown: (() => void) | null = null;
 let calibrateMode: WizardMode = "all";
+
+function clearStoredData(): void {
+  clearResults();
+  clearCalibration();
+  cal = { ...DEFAULT_CALIBRATION };
+  lastSaved = null;
+}
 
 function openCalibrationMenu() {
   screen = "calibration-menu";
@@ -205,9 +214,9 @@ function renderCalibrationMenu() {
         <button type="button" class="btn primary" data-action="cal-brightness">Brightness</button>
         <button type="button" class="btn primary" data-action="cal-contrast">Contrast</button>
         <button type="button" class="btn primary" data-action="cal-gamma">Gamma</button>
-        <button type="button" class="btn danger" data-action="clear-results"${
-          results.length ? "" : " disabled"
-        }>Clear results</button>
+        <button type="button" class="btn danger" data-action="clear-data"${
+          results.length || hasCalibrated() ? "" : " disabled"
+        }>Clear data</button>
         <button type="button" class="btn" data-action="back">Back</button>
       </div>
     </div>
@@ -226,10 +235,9 @@ function renderCalibrationMenu() {
     screen = "home";
     render();
   });
-  app!.querySelector("[data-action=clear-results]")?.addEventListener("click", () => {
-    if (confirm("Delete all saved quiz scores? Calibration will stay.")) {
-      clearResults();
-      lastSaved = null;
+  app!.querySelector("[data-action=clear-data]")?.addEventListener("click", () => {
+    if (confirm("Delete all quiz scores and calibration for this browser?")) {
+      clearStoredData();
       render();
     }
   });
@@ -403,8 +411,8 @@ function renderHistory() {
         <button type="button" class="btn" data-action="calibration">Calibration</button>
         <button type="button" class="btn" data-action="home">Home</button>
         <button type="button" class="btn danger" data-action="clear"${
-          all.length ? "" : " disabled"
-        }>Clear scores</button>
+          all.length || hasCalibrated() ? "" : " disabled"
+        }>Clear data</button>
       </div>
     </div>
   `;
@@ -417,9 +425,8 @@ function renderHistory() {
     .querySelector("[data-action=calibration]")
     ?.addEventListener("click", () => openCalibrationMenu());
   app!.querySelector("[data-action=clear]")?.addEventListener("click", () => {
-    if (confirm("Delete all saved quiz scores? Calibration will stay.")) {
-      clearResults();
-      lastSaved = null;
+    if (confirm("Delete all quiz scores and calibration for this browser?")) {
+      clearStoredData();
       screen = "history";
       render();
     }
