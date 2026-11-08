@@ -46,14 +46,14 @@ export function pairGradientCss(pair: QuizPair, cal: Calibration): string {
   const span = pairHueSpan(pair);
   const start = calibratedCssColor(lo, 1, 1, cal);
   const end = calibratedCssColor(hi, 1, 1, cal);
-  const stops: string[] = [`${start} 0%`, `${start} 1%`];
+  const stops: string[] = [`${start} 0%`, `${start} 0.25%`];
   for (let i = 1; i < steps; i++) {
     let h = lo + (span * i) / steps;
     if (h >= 360) h -= 360;
     const pct = (100 * i) / steps;
-    stops.push(`${calibratedCssColor(h, 1, 1, cal)} ${pct.toFixed(1)}%`);
+    stops.push(`${calibratedCssColor(h, 1, 1, cal)} ${pct.toFixed(2)}%`);
   }
-  stops.push(`${end} 99%`, `${end} 100%`);
+  stops.push(`${end} 99.75%`, `${end} 100%`);
   return `linear-gradient(to right, ${stops.join(", ")})`;
 }
 
@@ -131,7 +131,10 @@ export function buildPairCiBar(
   const { start, end } = pairGradientEndColors(pair, cal);
   bar.style.setProperty("--grad-start", start);
   bar.style.setProperty("--grad-end", end);
-  bar.style.background = pairGradientCss(pair, cal);
+  const fill = document.createElement("div");
+  fill.className = "ci-gradient-fill";
+  fill.style.background = pairGradientCss(pair, cal);
+  bar.append(fill);
   stack.append(bar);
 
   const overlay = document.createElement("div");

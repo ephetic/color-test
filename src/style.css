@@ -29,12 +29,31 @@ body {
   min-height: 100dvh;
 }
 
-.screen.home,
+.screen.home {
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: 0;
+  background: #111;
+}
+
 .screen.wizard {
   justify-content: center;
   align-items: center;
   padding: 1.25rem;
   background: #111;
+}
+
+.screen.home .home-panel {
+  width: 100%;
+  max-width: none;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: max(3.25rem, calc(env(safe-area-inset-top, 0px) + 2.75rem))
+    max(0.65rem, env(safe-area-inset-right, 0px))
+    max(0.75rem, env(safe-area-inset-bottom, 0px))
+    max(0.65rem, env(safe-area-inset-left, 0px));
 }
 
 .home-panel,
@@ -380,32 +399,12 @@ h2 {
   overflow: hidden;
   height: 1.35rem;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
-  background-color: var(--grad-start);
 }
 
-.ci-gradient-bar::before,
-.ci-gradient-bar::after {
-  content: "";
+.ci-gradient-fill {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 5px;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.ci-gradient-bar::before {
-  left: 0;
-  background: var(--grad-start);
-  border-radius: 5px 0 0 5px;
-}
-
-.ci-gradient-bar::after {
-  right: 0;
-  background: var(--grad-end);
-  border-radius: 0 5px 5px 0;
+  inset: 0;
+  border-radius: inherit;
 }
 
 .ci-dots {
@@ -473,18 +472,16 @@ h2 {
   height: 2.75rem;
 }
 
-.home-hint {
-  margin: 0 0 1rem;
-  text-align: center;
-  font-size: 0.88rem;
-  color: #5a5a5a;
-}
-
 .home-pair-card {
-  display: block;
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
   width: 100%;
+  min-height: 0;
   margin: 0;
-  padding: 0;
+  padding: 0.35rem 0;
   border: none;
   border-radius: 8px;
   background: transparent;
@@ -501,11 +498,117 @@ h2 {
 }
 
 .home-pair-card .ci-bar-chart {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   margin-bottom: 0;
+  width: 100%;
 }
 
 .home-actions.column {
-  gap: 1.1rem;
+  flex: 1;
+  gap: 0;
+  justify-content: space-evenly;
+  min-height: 0;
+}
+
+.screen.home .ci-bar-chart.layout-fixed {
+  min-height: clamp(8.5rem, 36vh, 17rem);
+}
+
+.screen.home .ci-bar-stack:has(.ci-bar-overlay) {
+  margin-top: clamp(1.25rem, 4vh, 1.75rem);
+  margin-bottom: clamp(1rem, 3.5vh, 1.5rem);
+}
+
+.screen.home .ci-bar-overlay {
+  top: clamp(-1.35rem, -4vh, -1.75rem);
+  bottom: clamp(-0.95rem, -3vh, -1.25rem);
+}
+
+.screen.home .ci-bracket {
+  height: clamp(1.25rem, 4vh, 1.65rem);
+  font-size: clamp(1.2rem, 3.6vw, 1.55rem);
+}
+
+.screen.home .ci-bracket-paren {
+  font-size: clamp(0.8rem, 2.4vw, 0.95rem);
+  line-height: clamp(1.35rem, 4vh, 1.65rem);
+}
+
+.screen.home .ci-bound-label {
+  font-size: clamp(0.72rem, 2.2vw, 0.88rem);
+  line-height: clamp(1.35rem, 4vh, 1.65rem);
+}
+
+.screen.home .ci-gradient-bar {
+  height: clamp(4.75rem, 22vh, 9.5rem);
+  border-radius: 10px;
+}
+
+.screen.home .ci-dots {
+  height: clamp(0.85rem, 3vh, 1.15rem);
+}
+
+.screen.home .ci-dot {
+  width: clamp(0.3rem, 1.1vw, 0.42rem);
+  height: clamp(0.3rem, 1.1vw, 0.42rem);
+}
+
+.screen.home .ci-dot-latest {
+  border-left-width: clamp(0.42rem, 1.6vw, 0.55rem);
+  border-right-width: clamp(0.42rem, 1.6vw, 0.55rem);
+  border-bottom-width: clamp(0.52rem, 2vw, 0.68rem);
+}
+
+.home-start-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(1.1rem, env(safe-area-inset-bottom, 0px));
+  z-index: 25;
+  margin: 0;
+  padding: 0.55rem 1rem;
+  max-width: min(22rem, calc(100vw - 2rem));
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: center;
+  color: #c8d4f0;
+  background: rgba(18, 22, 32, 0.92);
+  border: 1px solid rgba(110, 150, 230, 0.4);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  transform: translateX(-50%) translateY(0.5rem);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.home-start-toast.visible {
+  animation: home-start-toast-fade 6s ease-in-out infinite;
+}
+
+@keyframes home-start-toast-fade {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(0.5rem);
+  }
+  14% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  42% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  58% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(0.35rem);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(0.5rem);
+  }
 }
 
 .ci-bar-chart.layout-fixed {

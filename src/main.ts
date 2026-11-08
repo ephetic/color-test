@@ -142,10 +142,6 @@ function renderHome() {
   const panel = document.createElement("div");
   panel.className = "home-panel";
 
-  const hint = document.createElement("p");
-  hint.className = "home-hint";
-  hint.textContent = "Choose a test";
-
   const actions = document.createElement("div");
   actions.className = "home-actions column";
 
@@ -185,13 +181,25 @@ function renderHome() {
     actions.append(card);
   }
 
-  panel.append(hint, actions);
-  app!.append(gearWrap, panel);
+  panel.append(actions);
+
+  const startToast = document.createElement("p");
+  startToast.className = "home-start-toast";
+  startToast.setAttribute("role", "status");
+  startToast.textContent = "Tap gradient to start";
+
+  app!.append(gearWrap, panel, startToast);
 
   calBtn.addEventListener("click", () => openCalibrationMenu());
 
+  const hintTimer = window.setTimeout(() => {
+    startToast.classList.add("visible");
+  }, 30_000);
+  teardown = () => clearTimeout(hintTimer);
+
   actions.querySelectorAll<HTMLButtonElement>("[data-pair]").forEach((btn) => {
     btn.addEventListener("click", () => {
+      startToast.classList.remove("visible");
       quiz = startBisection(btn.dataset.pair as QuizPair);
       screen = "quiz";
       render();
