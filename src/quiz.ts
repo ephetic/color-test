@@ -99,8 +99,15 @@ export function chooseRight(state: BisectionState): BisectionState {
   };
 }
 
-export function isDone(state: BisectionState, precision = 1.5): boolean {
-  return hueDistance(state.lo, state.hi, state.pair) <= precision || state.step >= 12;
+/** Stop when the bracket is this narrow (degrees along the pair arc). */
+export function bisectionPrecision(pair: QuizPair): number {
+  return pair === "red-orange" ? 0.45 : 1.5;
+}
+
+export function isDone(state: BisectionState, precision?: number): boolean {
+  const p = precision ?? bisectionPrecision(state.pair);
+  const maxSteps = state.pair === "red-orange" ? 14 : 12;
+  return hueDistance(state.lo, state.hi, state.pair) <= p || state.step >= maxSteps;
 }
 
 export function resultHue(state: BisectionState): number {
