@@ -1,4 +1,4 @@
-import type { QuizPair } from "./quiz";
+import { pairHueRange, type QuizPair } from "./quiz";
 
 /** Mean hue in degrees, handling wrap for red–orange cluster near 0°. */
 export function meanHue(hues: number[], pair: QuizPair): number {
@@ -75,10 +75,15 @@ export function aggregateCi95(hues: number[], pair: QuizPair): AggregateCI | nul
 
 function sortHuesForStats(hues: number[], pair: QuizPair): number[] {
   if (pair === "red-orange") {
-    return [...hues]
-      .map((h) => (h < 180 ? h + 360 : h))
-      .sort((a, b) => a - b)
-      .map((h) => (h >= 360 ? h - 360 : h));
+    const { lo, hi } = pairHueRange(pair);
+    if (lo > hi) {
+      const alongArc = (h: number) => {
+        let x = h;
+        if (x < lo && x <= hi) x += 360;
+        return x;
+      };
+      return [...hues].sort((a, b) => alongArc(a) - alongArc(b));
+    }
   }
   return [...hues].sort((a, b) => a - b);
 }

@@ -16,10 +16,10 @@ const RANGES: Record<QuizPair, { lo: number; hi: number; leftLabel: string; righ
       leftLabel: "This is blue",
       rightLabel: "This is green",
     },
-    /** HSV S=V=1: 0° #FF0000 red → 12.5° orange (narrower arc, less yellow) */
+    /** HSV S=V=1: 359° crimson red → 11° orange (wraps past 0°; less yellow at top) */
     "red-orange": {
-      lo: 0,
-      hi: 12.5,
+      lo: 359,
+      hi: 11,
       leftLabel: "This is red",
       rightLabel: "This is orange",
     },
