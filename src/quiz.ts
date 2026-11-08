@@ -42,10 +42,19 @@ export function startBisection(pair: QuizPair): BisectionState {
   return { pair, lo: r.lo, hi: r.hi, step: 0 };
 }
 
+/** Map a hue on the red–orange arc into degrees along the 359°→11° span. */
+function redOrangeAlongArc(hue: number): number {
+  const { lo, hi } = pairHueRange("red-orange");
+  let h = hue;
+  if (lo > hi && h < lo && h <= hi) h += 360;
+  return h;
+}
+
 function midpointHue(lo: number, hi: number, pair: QuizPair): number {
-  if (pair === "red-orange" && lo > hi) {
-    const span = 360 - lo + hi;
-    let mid = lo + span / 2;
+  if (pair === "red-orange") {
+    const a = redOrangeAlongArc(lo);
+    const b = redOrangeAlongArc(hi);
+    let mid = (a + b) / 2;
     if (mid >= 360) mid -= 360;
     return mid;
   }
@@ -53,7 +62,9 @@ function midpointHue(lo: number, hi: number, pair: QuizPair): number {
 }
 
 function hueDistance(lo: number, hi: number, pair: QuizPair): number {
-  if (pair === "red-orange" && lo > hi) return 360 - lo + hi;
+  if (pair === "red-orange") {
+    return Math.abs(redOrangeAlongArc(hi) - redOrangeAlongArc(lo));
+  }
   return Math.abs(hi - lo);
 }
 

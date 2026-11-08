@@ -23,6 +23,7 @@ import {
   clearResults,
   type BisectionState,
   type QuizPair,
+  pairHueRange,
   type QuizResult,
 } from "./quiz";
 import { buildPairCiBar } from "./result-visual";
@@ -135,6 +136,7 @@ function renderHome() {
     card.dataset.pair = pair;
     card.setAttribute("aria-label", `Start ${pairLabel(pair)} test`);
 
+    const arc = pairHueRange(pair);
     const barOpts = {
       fixedLayout: true,
       muted: true,
@@ -149,7 +151,10 @@ function renderHome() {
               latestHue: latest.hueDegrees,
             };
           })()
-        : {}),
+        : {
+            boundsLo: arc.lo,
+            boundsHi: arc.hi,
+          }),
     };
 
     card.append(buildPairCiBar(pair, cal, barOpts));
