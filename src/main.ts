@@ -47,6 +47,7 @@ let cal: Calibration = loadCalibration();
 let quiz: BisectionState | null = null;
 let lastSaved: QuizResult | null = null;
 let teardown: (() => void) | null = null;
+let copyToastTimer: ReturnType<typeof setTimeout> | null = null;
 let calibrateMode: WizardMode = "all";
 
 function clearStoredData(): void {
@@ -70,6 +71,10 @@ function openCalibrationStep(mode: Exclude<WizardMode, "all">) {
 function render() {
   teardown?.();
   teardown = null;
+  if (copyToastTimer != null) {
+    clearTimeout(copyToastTimer);
+    copyToastTimer = null;
+  }
   app!.innerHTML = "";
   app!.className = "";
   app!.style.backgroundColor = "";
@@ -118,14 +123,17 @@ function buildShareText(): string {
   const lines: string[] = [];
   const pairs: QuizPair[] = ["blue-green", "red-orange"];
   for (const pair of pairs) {
-    const hues = resultsForPair(pair).map((r) => r.hueDegrees);
+    const results = resultsForPair(pair);
+    const hues = results.map((r) => r.hueDegrees);
     if (hues.length > 0) {
       const band = displayBand(hues, pair);
+      const latest = results.at(-1)!.hueDegrees;
+      const latestStr = latest.toFixed(1).replace(/\.0$/, "");
       lines.push(
-        `${pairLabel(pair)} IQR: ${band.lo.toFixed(1)}° – ${band.hi.toFixed(1)}°`,
+        `${pairLabel(pair)} :: Latest: ${latestStr}° IQR: ${band.lo.toFixed(1)}° – ${band.hi.toFixed(1)}°`,
       );
     } else {
-      lines.push(`${pairLabel(pair)} IQR: —`);
+      lines.push(`${pairLabel(pair)} :: Latest: — IQR: —`);
     }
   }
   lines.push(
@@ -134,10 +142,31 @@ function buildShareText(): string {
   return lines.join("\n");
 }
 
+function showCopyToast(): void {
+  app!.querySelectorAll(".home-copy-toast").forEach((el) => el.remove());
+  const toast = document.createElement("p");
+  toast.className = "home-copy-toast";
+  toast.setAttribute("role", "status");
+  toast.textContent = "Copied";
+  app!.append(toast);
+  requestAnimationFrame(() => {
+    toast.classList.add("show");
+  });
+  if (copyToastTimer != null) clearTimeout(copyToastTimer);
+  copyToastTimer = setTimeout(() => {
+    toast.classList.remove("show");
+    copyToastTimer = setTimeout(() => {
+      toast.remove();
+      copyToastTimer = null;
+    }, 320);
+  }, 1800);
+}
+
 async function copyShareText(): Promise<void> {
   const text = buildShareText();
   try {
     await navigator.clipboard.writeText(text);
+    showCopyToast();
   } catch {
     window.prompt("Copy:", text);
   }

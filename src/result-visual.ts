@@ -160,18 +160,32 @@ export function buildPairCiBar(
     const latestHue = options.latestHue;
     pastHues.forEach((h, i) => {
       if (latestHue != null && i === pastHues.length - 1) return;
-      const dot = document.createElement("span");
-      dot.className = "ci-dot";
-      dot.style.left = `${hueToBarPercent(h, pair)}%`;
-      dot.title = `${h.toFixed(1)}°`;
-      dots.append(dot);
+      const mark = document.createElement("span");
+      mark.className = "ci-prior-mark";
+      mark.style.left = `${hueToBarPercent(h, pair)}%`;
+      mark.title = `${h.toFixed(1)}°`;
+      const tri = document.createElement("span");
+      tri.className = "ci-dot-prior";
+      tri.setAttribute("aria-hidden", "true");
+      mark.append(tri);
+      dots.append(mark);
     });
     if (latestHue != null) {
+      const mark = document.createElement("span");
+      mark.className = "ci-latest-mark";
+      mark.style.left = `${hueToBarPercent(latestHue, pair)}%`;
+
       const tri = document.createElement("span");
       tri.className = "ci-dot-latest";
-      tri.style.left = `${hueToBarPercent(latestHue, pair)}%`;
-      tri.title = `${latestHue.toFixed(1)}° (latest)`;
-      dots.append(tri);
+      tri.setAttribute("aria-hidden", "true");
+
+      const label = document.createElement("span");
+      label.className = "ci-latest-label";
+      label.textContent = `${latestHue.toFixed(1)}°`;
+
+      mark.title = `${latestHue.toFixed(1)}° (latest)`;
+      mark.append(tri, label);
+      dots.append(mark);
     }
     overlay.append(dots);
   }
